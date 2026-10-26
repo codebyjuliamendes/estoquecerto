@@ -23,3 +23,14 @@ body{background-color:var(--portfolio-canvas)}
 .secondary,.ghost,.subtle{color:var(--portfolio-accent)}
 .rail-active,.nav.active,.sidebar .active,.brand-mark,.logo{--accent-color:var(--portfolio-accent)}
 .badge,.pill,.tag{--accent-color:var(--portfolio-accent)}
+
+/* Replace the icon rail with a compact product masthead. */
+.rail{position:relative;inset:auto;width:100%;height:62px;flex-direction:row;justify-content:flex-start;gap:0;padding:0 max(22px,calc((100vw - 1220px)/2));border-right:0;border-bottom:1px solid var(--line);box-shadow:none}
+.rail>*:not(.logo){display:none}
+.app{margin-left:0!important;max-width:1220px;margin-inline:auto;padding:0 26px}
+@media(max-width:700px){.rail{height:56px;padding:0 16px}.app{padding:0 14px}}
+
+
+/* Editorial navigation and restrained surfaces */
+body{background-image:none!important}.rail{position:relative!important}
+.panel,.changes-panel,.history-panel,.ticket-column,.detail,.knowledge,.preview-panel{box-shadow:none!important}
