@@ -20,6 +20,8 @@ Abra <http://localhost:3002>. A primeira execução cria dados fictícios para e
 - Receitas com ingredientes e consumo por porção.
 - Planejamento de porções possíveis e baixa de ingredientes ao preparar.
 - Registro de perdas e histórico recente de movimentações.
+- Conversão automática entre kg/g/mg e L/ml para entradas de lote e quantidades de receita.
+- Exportação do inventário em CSV com proteção contra fórmulas de planilha.
 
 ## Decisões técnicas
 
@@ -35,6 +37,9 @@ Abra <http://localhost:3002>. A primeira execução cria dados fictícios para e
 - `POST /api/recipes` — cria receita.
 - `POST /api/recipes/:id/prepare` — registra preparo e baixa do estoque.
 - `POST /api/waste` — registra perda.
+- `GET /api/export/inventory.csv` — baixa o estoque atual como CSV.
+
+Receitas e lotes aceitam unidades compatíveis, por exemplo `0.2 kg` ou `200 g`. Quantidades são convertidas para a unidade-base do ingrediente antes de calcular os saldos e preparos.
 
 ## Próximas melhorias
 
