@@ -1,1 +1,282 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f5f1"><title>EstoqueCerto — cozinha em dia</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script><link rel="icon" type="image/svg+xml" href="/mark-ec.svg"><link rel="apple-touch-icon" href="/mark-ec.svg"></head><body><aside class="rail"><a class="logo" href="/"><img class="brand-logo" src="/mark-ec.svg" alt="EstoqueCerto"></a><span class="rail-active">▦</span><span>◷</span><span>⌘</span><div class="rail-bottom">?</div></aside><div class="app"><header><div><span class="crumb">OPERAÇÃO <b>/</b> ESTOQUE</span><h1>Bom dia, cozinha <span>☀</span></h1></div><div class="header-right"><span class="live"><i></i> Dados atualizados</span><span class="avatar">CC</span></div></header><main><div class="page-head"><div><p>SEGUNDA-FEIRA · VISÃO GERAL</p><h2>Seu estoque, sob controle.</h2><span>Validade, consumo e preparo em um só lugar.</span></div><button id="stock-open" class="primary">+ Registrar entrada</button></div><section class="metrics"><article><span class="metric-icon green">▦</span><span class="metric-label">INGREDIENTES ATIVOS</span><strong id="metric-items">—</strong><small>ingredientes cadastrados</small></article><article><span class="metric-icon amber">◷</span><span class="metric-label">VENCEM EM 3 DIAS</span><strong id="metric-expiring">—</strong><small>priorize no preparo</small></article><article><span class="metric-icon red">↓</span><span class="metric-label">ESTOQUE BAIXO</span><strong id="metric-low">—</strong><small>abaixo do mínimo definido</small></article><article><span class="metric-icon blue">↘</span><span class="metric-label">PERDAS REGISTRADAS</span><strong id="metric-waste">—</strong><small>em unidades dos ingredientes</small></article></section><div class="columns"><section class="panel inventory"><div class="panel-head"><div><h3>Ingredientes</h3><p>Os lotes mais próximos do vencimento aparecem primeiro.</p></div><a class="text-button" href="/api/export/inventory.csv">Exportar CSV ↓</a></div><div class="table-wrap"><table><thead><tr><th>INGREDIENTE</th><th>DISPONÍVEL</th><th>PRÓXIMA VALIDADE</th><th>STATUS</th><th></th></tr></thead><tbody id="inventory"></tbody></table></div></section><section class="panel recipes"><div class="panel-head"><div><h3>O que dá para preparar?</h3><p>Receitas calculadas pelo estoque disponível.</p></div><button id="recipe-open" class="text-button">+ Receita</button></div><div id="recipe-list"></div></section></div><div class="columns lower"><section class="panel activity"><div class="panel-head"><div><h3>Atividade recente</h3><p>Entradas, preparos e perdas.</p></div></div><div id="activity-list"></div></section><section class="tip"><span>✳</span><div class="tip-label">DICA DO DIA</div><h3>Use primeiro o que vence antes.</h3><p>O estoque baixa pelos lotes na ordem da validade (FEFO), ajudando sua equipe a evitar perdas desnecessárias.</p></section></div><footer>EstoqueCerto <span>Ferramenta de demonstração para pequenos restaurantes</span></footer></main></div><div id="modal" class="modal" hidden></div><div id="toast" class="toast"></div></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f3f8f6" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Estoque, validade e preparo para pequenos restaurantes." />
+    <title>EstoqueCerto — cozinha em dia</title>
+    <link rel="icon" type="image/svg+xml" href="/mark-ec.svg" />
+    <link rel="apple-touch-icon" href="/mark-ec.svg" />
+    <script src="/theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="EstoqueCerto, página inicial">
+        <img class="brand-logo" src="/mark-ec.svg" alt="" width="32" height="32" />
+        <span class="brand-name">Estoque<span>Certo</span></span>
+      </a>
+      <div class="masthead-right">
+        <span id="sync-status" class="sync" role="status"><span class="sync-dot" aria-hidden="true"></span><span>Carregando…</span></span>
+        <button id="theme-toggle" class="icon-button" type="button" aria-label="Alternar tema"></button>
+      </div>
+    </header>
+
+    <main id="main" class="shell" tabindex="-1">
+      <div class="page-head">
+        <div>
+          <p id="today-label" class="eyebrow">OPERAÇÃO · ESTOQUE</p>
+          <h1 id="greeting">Seu estoque, sob controle.</h1>
+          <p class="page-sub">Validade, consumo e preparo em um só lugar.</p>
+        </div>
+        <button id="entry-open" class="button primary" type="button">+ Registrar entrada</button>
+      </div>
+
+      <section id="alerts" class="alerts" aria-label="Alertas do estoque" hidden></section>
+
+      <section class="metrics" aria-label="Indicadores">
+        <article class="metric">
+          <span class="metric-icon tone-ok" aria-hidden="true">▦</span>
+          <h2 class="metric-label">Ingredientes</h2>
+          <strong id="metric-items" class="metric-value">—</strong>
+          <small>cadastrados</small>
+        </article>
+        <article class="metric">
+          <span class="metric-icon tone-warn" aria-hidden="true">◷</span>
+          <h2 class="metric-label" id="metric-expiring-label">Vencem em breve</h2>
+          <strong id="metric-expiring" class="metric-value">—</strong>
+          <small id="metric-expiring-note">lotes para priorizar no preparo</small>
+        </article>
+        <article class="metric">
+          <span class="metric-icon tone-danger" aria-hidden="true">↓</span>
+          <h2 class="metric-label">Estoque baixo</h2>
+          <strong id="metric-low" class="metric-value">—</strong>
+          <small>no mínimo ou abaixo dele</small>
+        </article>
+        <article class="metric">
+          <span class="metric-icon tone-info" aria-hidden="true">↘</span>
+          <h2 class="metric-label">Perdas · 30 dias</h2>
+          <strong id="metric-waste" class="metric-value">—</strong>
+          <small id="metric-waste-note">registros de perda</small>
+        </article>
+      </section>
+
+      <div class="columns">
+        <section class="panel" aria-labelledby="inventory-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="inventory-title">Ingredientes</h2>
+              <p>O mais urgente primeiro: vencidos, validade próxima e itens no mínimo.</p>
+            </div>
+            <a class="text-button" href="/api/export/inventory.csv" download>Exportar CSV ↓</a>
+          </div>
+          <div class="table-wrap">
+            <table class="inventory-table">
+              <caption class="sr-only">
+                Saldo disponível por ingrediente, sem contar lotes vencidos
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Ingrediente</th>
+                  <th scope="col">Disponível</th>
+                  <th scope="col">Próxima validade</th>
+                  <th scope="col">Situação</th>
+                  <th scope="col"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody id="inventory"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="recipes-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="recipes-title">O que dá para preparar?</h2>
+              <p>Porções pela ficha técnica e pelo saldo válido.</p>
+            </div>
+            <button id="recipe-open" class="text-button" type="button">+ Receita</button>
+          </div>
+          <ul id="recipe-list" class="recipe-list"></ul>
+        </section>
+      </div>
+
+      <div class="columns lower">
+        <section class="panel" aria-labelledby="activity-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="activity-title">Atividade recente</h2>
+              <p>Entradas, preparos, perdas e ajustes, com os lotes afetados.</p>
+            </div>
+          </div>
+          <ol id="activity-list" class="activity-list"></ol>
+        </section>
+        <aside class="tip" aria-labelledby="tip-title">
+          <span class="tip-mark" aria-hidden="true">✳</span>
+          <p class="eyebrow">Dica do dia</p>
+          <h2 id="tip-title">Use primeiro o que vence antes.</h2>
+          <p>
+            O estoque baixa pelos lotes na ordem da validade (FEFO). Lotes vencidos não entram no saldo nem no preparo: descarte-os para
+            manter o histórico de perdas em dia.
+          </p>
+        </aside>
+      </div>
+
+      <footer class="footer">EstoqueCerto <span>Controle de estoque para pequenos restaurantes</span></footer>
+    </main>
+
+    <dialog id="entry-dialog" aria-labelledby="entry-title">
+      <form id="entry-form" class="dialog-card" novalidate>
+        <button type="button" class="dialog-close" data-close aria-label="Fechar">×</button>
+        <p class="eyebrow">Estoque · Entrada</p>
+        <h2 id="entry-title">Registrar entrada</h2>
+        <p class="dialog-sub">Cada entrada cria um lote com validade própria e entra no histórico.</p>
+        <label for="entry-name">Ingrediente</label>
+        <input id="entry-name" name="name" list="ingredient-names" maxlength="60" autocomplete="off" required />
+        <datalist id="ingredient-names"></datalist>
+        <div class="field-row">
+          <div>
+            <label for="entry-quantity">Quantidade recebida</label>
+            <input id="entry-quantity" name="quantity" inputmode="decimal" placeholder="Ex.: 2,5" required />
+          </div>
+          <div>
+            <label for="entry-unit">Unidade</label>
+            <select id="entry-unit" name="unit"></select>
+          </div>
+        </div>
+        <label for="entry-expires">Validade do lote</label>
+        <input id="entry-expires" name="expiresOn" type="date" required />
+        <label for="entry-minimum">Estoque mínimo para alerta <span class="optional">(opcional)</span></label>
+        <input id="entry-minimum" name="minimum" inputmode="decimal" placeholder="Manter o atual" />
+        <p id="entry-hint" class="field-hint">Na mesma unidade da quantidade. Em branco, mantém o mínimo atual.</p>
+        <p class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Salvar entrada</button>
+      </form>
+    </dialog>
+
+    <dialog id="recipe-dialog" aria-labelledby="recipe-title">
+      <form id="recipe-form" class="dialog-card" novalidate>
+        <button type="button" class="dialog-close" data-close aria-label="Fechar">×</button>
+        <p class="eyebrow">Cardápio · Ficha técnica</p>
+        <h2 id="recipe-title">Nova receita</h2>
+        <p class="dialog-sub">Quantidade de cada ingrediente para uma porção. Unidades compatíveis são convertidas.</p>
+        <label for="recipe-name">Nome do prato</label>
+        <input id="recipe-name" name="name" maxlength="60" required />
+        <fieldset class="recipe-items">
+          <legend>Ingredientes por porção</legend>
+          <div id="recipe-rows"></div>
+          <button id="recipe-add-row" class="text-button" type="button">+ Ingrediente</button>
+        </fieldset>
+        <p class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Salvar receita</button>
+      </form>
+    </dialog>
+
+    <dialog id="prepare-dialog" aria-labelledby="prepare-title">
+      <form id="prepare-form" class="dialog-card" novalidate>
+        <button type="button" class="dialog-close" data-close aria-label="Fechar">×</button>
+        <p class="eyebrow">Cozinha · Preparo</p>
+        <h2 id="prepare-title">Preparar receita</h2>
+        <p id="prepare-sub" class="dialog-sub"></p>
+        <label for="prepare-portions">Porções</label>
+        <input id="prepare-portions" name="portions" type="number" min="1" step="1" inputmode="numeric" required />
+        <p class="field-hint">Sai do estoque, pelos lotes que vencem antes:</p>
+        <ul id="prepare-preview" class="preview-list"></ul>
+        <p class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Confirmar preparo</button>
+      </form>
+    </dialog>
+
+    <dialog id="waste-dialog" aria-labelledby="waste-title">
+      <form id="waste-form" class="dialog-card" novalidate>
+        <button type="button" class="dialog-close" data-close aria-label="Fechar">×</button>
+        <p class="eyebrow">Estoque · Perda</p>
+        <h2 id="waste-title">Registrar perda</h2>
+        <p id="waste-sub" class="dialog-sub"></p>
+        <div class="field-row">
+          <div>
+            <label for="waste-quantity">Quantidade perdida</label>
+            <input id="waste-quantity" name="quantity" inputmode="decimal" placeholder="Ex.: 0,5" required />
+          </div>
+          <div>
+            <label for="waste-unit">Unidade</label>
+            <select id="waste-unit" name="unit"></select>
+          </div>
+        </div>
+        <label for="waste-reason">Motivo</label>
+        <input id="waste-reason" name="reason" list="waste-reasons" maxlength="120" placeholder="Ex.: Avaria no transporte" />
+        <datalist id="waste-reasons">
+          <option value="Validade vencida"></option>
+          <option value="Avaria"></option>
+          <option value="Queda ou derramamento"></option>
+          <option value="Erro de preparo"></option>
+          <option value="Armazenamento inadequado"></option>
+        </datalist>
+        <p class="field-hint">Lotes vencidos saem primeiro; depois, os que vencem antes.</p>
+        <p class="form-error" role="alert"></p>
+        <button class="button danger full" type="submit">Registrar perda</button>
+      </form>
+    </dialog>
+
+    <dialog id="lots-dialog" class="wide" aria-labelledby="lots-title">
+      <div class="dialog-card">
+        <button type="button" class="dialog-close" data-close aria-label="Fechar">×</button>
+        <p class="eyebrow">Estoque · Lotes</p>
+        <h2 id="lots-title">Lotes</h2>
+        <p id="lots-sub" class="dialog-sub"></p>
+        <div id="lots-body" class="lots-body" aria-live="polite"></div>
+
+        <div class="split-forms">
+          <form id="minimum-form" class="subform" novalidate>
+            <h3>Estoque mínimo</h3>
+            <div class="field-row">
+              <div>
+                <label for="minimum-value">Mínimo</label>
+                <input id="minimum-value" name="minimum" inputmode="decimal" required />
+              </div>
+              <div>
+                <label for="minimum-unit">Unidade</label>
+                <select id="minimum-unit" name="unit"></select>
+              </div>
+            </div>
+            <p class="field-hint">Use 0 para desativar o alerta.</p>
+            <p class="form-error" role="alert"></p>
+            <button class="button secondary full" type="submit">Salvar mínimo</button>
+          </form>
+
+          <form id="adjust-form" class="subform" novalidate>
+            <h3>Ajuste de inventário</h3>
+            <div class="field-row">
+              <div>
+                <label for="adjust-counted">Saldo contado <span class="optional">(lotes válidos)</span></label>
+                <input id="adjust-counted" name="counted" inputmode="decimal" required />
+              </div>
+              <div>
+                <label for="adjust-unit">Unidade</label>
+                <select id="adjust-unit" name="unit"></select>
+              </div>
+            </div>
+            <label for="adjust-reason">Motivo</label>
+            <input id="adjust-reason" name="reason" maxlength="120" placeholder="Ex.: Contagem semanal" required />
+            <label for="adjust-expires">Validade <span class="optional">(se o saldo aumentar)</span></label>
+            <input id="adjust-expires" name="expiresOn" type="date" />
+            <p class="form-error" role="alert"></p>
+            <button class="button secondary full" type="submit">Registrar ajuste</button>
+          </form>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
